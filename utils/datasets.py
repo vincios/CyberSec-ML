@@ -30,16 +30,12 @@ def load_all(directory):
     """
     final_dataset = None  # final dataset
     files = os.listdir(directory)
-    for path in files:
-        if os.path.isfile(path):
-            data = pd_load_data(path, directory)  # Base
-        else:
-            data = load_all(path)  # Recursively load dataset in folders
-
+    for file in files:
+        data = pd_load_data(file, directory)
         if final_dataset is None:
             final_dataset = data
         else:
-            final_dataset = pd.concat([final_dataset, data], ignore_index=True)
+            final_dataset = pd.concat([final_dataset, data])
     return final_dataset
 
 
