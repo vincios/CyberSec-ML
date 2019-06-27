@@ -24,18 +24,22 @@ def pd_load_data(filename, directory):  # define functions load
     return pd.read_csv(csv_path, skipinitialspace=True)
 
 
-def merge_datasets(directory):
+def load_all(directory):
     """
         Loads all csv files contained in a specified folder and merge them in a single pandas DataFrame
     """
     final_dataset = None  # final dataset
     files = os.listdir(directory)
-    for file in files:
-        data = pd_load_data(file, directory)
+    for path in files:
+        if os.path.isfile(path):
+            data = pd_load_data(path, directory)  # Base
+        else:
+            data = load_all(path)  # Recursively load dataset in folders
+
         if final_dataset is None:
             final_dataset = data
         else:
-            final_dataset = pd.concat([final_dataset, data])
+            final_dataset = pd.concat([final_dataset, data], ignore_index=True)
     return final_dataset
 
 

@@ -12,8 +12,11 @@ RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "2_model_tuning")
 
 
 def calc():
-    benign = datasets.merge_datasets(os.path.join("datasets", DATASET_NAME_2))  # load dataset from csv
-    ransomware = datasets.merge_datasets(os.path.join("datasets", DATASET_NAME))  # load dataset from csv
+    if not os.path.exists(RESULTS_FOLDER_PATH):
+        os.makedirs(RESULTS_FOLDER_PATH)
+
+    benign = datasets.load_all(os.path.join("datasets", DATASET_NAME_2))  # load dataset from csv
+    ransomware = datasets.load_all(os.path.join("datasets", DATASET_NAME))  # load dataset from csv
     ransomware["Label"] = DATASET_NAME.upper()
 
     print("benign shape", benign.shape)
