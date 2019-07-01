@@ -60,7 +60,8 @@ def prepare_dataset(dataset: pd.DataFrame, drop_columns=None, shuffle=False, dro
             new_dataset = new_dataset.drop(column, axis=1)
 
     if dropna:
-        new_dataset = new_dataset.dropna()
+        new_dataset = new_dataset.dropna(axis=0)
+        new_dataset = new_dataset.dropna(axis=1)
 
     if shuffle:
         new_dataset = new_dataset.reindex(np.random.permutation(new_dataset.index))
