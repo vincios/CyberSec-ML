@@ -1,0 +1,44 @@
+benign shape (410548, 85)
+ransomware shape (348943, 85)
+benign shape after balancing (150000, 85)
+ransomware shape after balancing (150000, 85)
+                                   Flow ID    Source IP  ...  Idle Min   Label
+0   151.101.21.140-10.42.0.211-443-50976-6  10.42.0.211  ...       0.0  BENIGN
+1    216.58.217.67-10.42.0.42-443-44708-17   10.42.0.42  ...       0.0  BENIGN
+2      183.56.172.95-10.42.0.42-80-34961-6   10.42.0.42  ...       0.0  BENIGN
+3  192.229.173.173-10.42.0.211-443-45534-6  10.42.0.211  ...       0.0  BENIGN
+4        10.42.0.42-31.13.71.7-59331-443-6   10.42.0.42  ...       0.0  BENIGN
+
+[5 rows x 85 columns]
+Dataset shape BEFORE preparation (300000, 85)
+Dataset shape AFTER preparation (300000, 78)
+Estimators number test
+Training random forest with 16 estimators (4)
+Training random forest with 64 estimators (8)
+Training random forest with 144 estimators (12)
+Training random forest with 256 estimators (16)
+Training random forest with 400 estimators (20)
+Training random forest with 576 estimators (24)
+Training random forest with 784 estimators (28)
+max depth number test
+Training random forest with 2 max depth (1)
+Training random forest with 4 max depth (2)
+Training random forest with 8 max depth (3)
+Training random forest with 16 max depth (4)
+Training random forest with 32 max depth (5)
+Training random forest with 64 max depth (6)
+Training random forest with 128 max depth (7)
+Training random forest with 256 max depth (8)
+Training random forest with 512 max depth (9)
+Training random forest with 1024 max depth (10)
+Min Sample Leaf number test
+Training random forest with 1 min sample leaf (1)
+Training random forest with 2 min sample leaf (2)
+Training random forest with 3 min sample leaf (3)
+Training random forest with 4 min sample leaf (4)
+Training random forest with 5 min sample leaf (5)
+Training random forest with 6 min sample leaf (6)
+Training random forest with 7 min sample leaf (7)
+Training random forest with 8 min sample leaf (8)
+Training random forest with 9 min sample leaf (9)
+Training random forest with 10 min sample leaf (10)

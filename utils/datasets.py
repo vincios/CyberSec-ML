@@ -28,15 +28,19 @@ def load_all(directory):
     """
         Loads all csv files contained in a specified folder and merge them in a single pandas DataFrame
     """
-    final_dataset = None  # final dataset
+    final_dataset = [] # final dataset
+
     files = os.listdir(directory)
+
     for file in files:
-        data = pd_load_data(file, directory)
-        if final_dataset is None:
-            final_dataset = data
+        if os.path.isfile(os.path.join(directory, file)):
+            data = pd_load_data(file, directory)
         else:
-            final_dataset = pd.concat([final_dataset, data])
-    return final_dataset
+            data = load_all(file)
+
+        final_dataset.append(data)
+
+    return pd.concat(final_dataset, ignore_index=True)
 
 
 def prepare_dataset(dataset: pd.DataFrame, drop_columns=None, shuffle=False, dropna=False):
