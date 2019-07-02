@@ -80,13 +80,16 @@ def calc():
     roc_auc_scores = []
     roc_fpr_tpr_thres = []
 
-
     logger.info("Logistic Regression")
-    log_reg = LogisticRegression(verbose=1, n_jobs=-1)
-    roc_curve, auc_score = logistic_regression.fit_and_roc(log_reg, xTest, yTest)
-    save_result(roc_curve, auc_score, "Logistic Regression", roc_fpr_tpr_thres, roc_auc_scores)
-
-
+    log_reg = LogisticRegression(verbose=1, n_jobs=-1, max_iter=1000)
+    # roc_curve, auc_score = logistic_regression.fit_and_roc(log_reg, xTest, yTest)
+    # save_result(roc_curve, auc_score, "Logistic Regression", roc_fpr_tpr_thres, roc_auc_scores)
+    results = logistic_regression.cross_validate_scoring(log_reg, xTest, yTest, cv=2,
+                                                         scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+                                                         return_train_score=True)
+    print(results)
+    console_handler.close()
+    file_handler.close()
 
 
 def show():
