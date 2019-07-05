@@ -29,9 +29,10 @@ def cross_validate_scoring(clf, xTest, yTest, cv=3, scoring=None, return_train_s
         fitted_clf = results.pop('estimator', None)[0]
         if hasattr(fitted_clf, "predict_proba"):
             score = fitted_clf.predict_proba(xTest)
+            fpr, tpr, thres = roc_curve(yTest, score[:, 1])
         else:
             score = fitted_clf.decision_function(xTest)
-        fpr, tpr, thres = roc_curve(yTest, score[:, 1])
+            fpr, tpr, thres = roc_curve(yTest, score)
         results['roc_curve'] = [fpr, tpr, thres]
 
     return results
