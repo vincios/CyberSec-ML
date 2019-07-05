@@ -4,8 +4,10 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC
 
-from utils import datasets, random_forest, logistic_regression, plot
+from utils import datasets, scoring, plot
 
 DATASET_NAME = "ddos"
 RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "1_model_selection")
@@ -76,17 +78,31 @@ def calc():
     dataset = None
 
     xTest = datasets.drop_variance(xTest)
+    standardScaler = StandardScaler()
+    xTestScaled = standardScaler.fit_transform(xTest)
 
     roc_auc_scores = []
     roc_fpr_tpr_thres = []
 
-    logger.info("Logistic Regression")
-    log_reg = LogisticRegression(verbose=1, n_jobs=-1, max_iter=1000)
-    # roc_curve, auc_score = logistic_regression.fit_and_roc(log_reg, xTest, yTest)
-    # save_result(roc_curve, auc_score, "Logistic Regression", roc_fpr_tpr_thres, roc_auc_scores)
-    results = logistic_regression.cross_validate_scoring(log_reg, xTest, yTest, cv=2,
-                                                         scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                                         return_train_score=True)
+    # logger.info("Logistic Regression")
+    # log_reg = LogisticRegression(verbose=1, n_jobs=-1, max_iter=1000)
+    # results = scoring.cross_validate_scoring(log_reg, xTest, yTest, cv=2,
+    #                                                      scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    #                                                      return_train_score=True)
+    # print(results)
+
+    logger.info("SVC Classifier Scaled")
+    linearSvc = LinearSVC(verbose=1)        #svc classifier
+    results = scoring.cross_validate_scoring(linearSvc, xTestScaled, yTest, cv=2,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+                                             return_train_score=True)
+    print(results)
+    logger.info("SVC Classifier")
+    linearSvc = LinearSVC(verbose=1)  # svc classifier
+    results = scoring.cross_validate_scoring(linearSvc, xTest, yTest, cv=2,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+                                             return_train_score=True)
+
     print(results)
     console_handler.close()
     file_handler.close()
