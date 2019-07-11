@@ -1,6 +1,5 @@
 import os
 import logging
-import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -11,7 +10,7 @@ from sklearn.decomposition import PCA
 
 from utils import datasets, scoring, plot
 
-DATASET_NAME = "ddos"
+DATASET_NAME = "tor"
 RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "1_model_selection")
 
 
@@ -77,14 +76,14 @@ def calc():
 
     logger.info("{} {}".format("Dataset shape BEFORE preparation", loaded_dataset.shape))
     dataset = datasets.prepare_dataset(loaded_dataset,
-                                       drop_columns=["Flow Bytes/s", "Flow Packets/s", "Fwd Header Length.1"],
+                                       # drop_columns=["Flow Bytes/s", "Flow Packets/s", "Fwd Header Length.1"],
                                        shuffle=True, dropna=True)
 
     loaded_dataset = None
 
     logger.info("{} {}".format("Dataset shape AFTER preparation", dataset.shape))
 
-    xTest, yTest = datasets.separate_labels(dataset, encode=True)
+    xTest, yTest = datasets.separate_labels(dataset, encode=True, column_name="class1")
 
     dataset = None
 
@@ -189,6 +188,4 @@ def show(scor='f1'):
 
 if __name__ == "__main__":
     # calc()
-    show('roc_auc')
-
-
+    show('f1')

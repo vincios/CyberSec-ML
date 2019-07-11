@@ -11,7 +11,8 @@ from sklearn.decomposition import PCA
 
 from utils import datasets, scoring, plot
 
-DATASET_NAME = "ddos"
+DATASET_NAME = "ransomware"
+DATASET_NAME_2 = "benign"
 RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "1_model_selection")
 
 
@@ -39,8 +40,26 @@ def save_result2(results_array, results: dict, name: str):
     datasets.np_double_save(results_array, RESULTS_FOLDER_PATH, 'results', as_csv=True)
 
 
-def load_data():
-    return datasets.load_all(os.path.join("datasets"))  # load dataset from csv
+def load_data(logger):
+    benign = datasets.load_all(os.path.join("datasets", DATASET_NAME_2))  # load dataset from csv
+    ransomware = datasets.load_all(os.path.join("datasets", DATASET_NAME))  # load dataset from csv
+    logger.info("{} {}".format("benign shape", benign.shape))
+    logger.info("{} {}".format("ransomware shape", ransomware.shape))
+
+    benign = datasets.prepare_dataset(benign, shuffle=True)
+    ransomware = datasets.prepare_dataset(ransomware, shuffle=True)
+
+    n_elements = min(benign.shape[0], ransomware.shape[0], 150000)
+
+    benign = benign.head(n_elements)
+    ransomware = ransomware.head(n_elements)
+
+    logger.info("{} {}".format("benign shape after balancing", benign.shape))
+    logger.info("{} {}".format("ransomware shape after balancing", ransomware.shape))
+
+    ransomware["Label"] = DATASET_NAME.upper()
+
+    return pd.concat([benign, ransomware], ignore_index=True)  # union dataset
 
 
 def calc():
@@ -65,7 +84,7 @@ def calc():
     logger.setLevel(logging.INFO)
 
     # begin calc
-    loaded_dataset = load_data()
+    loaded_dataset = load_data(logger)
     logger.info("{} {}".format("loaded_dataset shape", loaded_dataset.shape))
 
     # loaded_dataset["Label"] = DATASET_NAME.upper()
@@ -77,7 +96,8 @@ def calc():
 
     logger.info("{} {}".format("Dataset shape BEFORE preparation", loaded_dataset.shape))
     dataset = datasets.prepare_dataset(loaded_dataset,
-                                       drop_columns=["Flow Bytes/s", "Flow Packets/s", "Fwd Header Length.1"],
+                                       drop_columns=["Flow Bytes/s", "Flow Packets/s", "Flow ID", "Source IP",
+                                                     "Destination IP", "Timestamp", "Fwd Header Length.1"],
                                        shuffle=True, dropna=True)
 
     loaded_dataset = None
@@ -189,6 +209,6 @@ def show(scor='f1'):
 
 if __name__ == "__main__":
     # calc()
-    show('roc_auc')
+    show('f1')
 
 

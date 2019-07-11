@@ -8,7 +8,7 @@ def plt_add_roc_curve(fpr, tpr, label=None):
 
 
 def initialize_roc_plt(title=None):
-    fig = plt.figure()
+    fig = plt.figure(figsize=(20, 10))
     fig.suptitle(title + " ROC")
     plt.plot([0, 1], [0, 1], "--k")
     plt.axis([0, 1, 0, 1])
@@ -47,7 +47,7 @@ def plt_cross_validate_results(results: dict, scoring='f1', title=None):
         ind = np.arange(len(test_scores))  # the x locations for the groups
         width = 0.35  # the width of the bars
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(20, 10))
         rects1 = ax.bar(ind - width / 2, test_scores, width,
                         label='Test')
         rects2 = ax.bar(ind + width / 2, train_scores, width,
@@ -84,4 +84,4 @@ def plt_cross_validate_results(results: dict, scoring='f1', title=None):
 
         fig.tight_layout()
 
-        plt.show()
+    plt.show()

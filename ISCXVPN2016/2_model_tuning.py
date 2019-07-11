@@ -6,8 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
 
 from utils import datasets, scoring, plot
 
@@ -36,11 +35,6 @@ def save_result2(results_array, results: dict, name: str):
     results['label'] = name
     results_array.append(results)
     datasets.pk_save(results_array, RESULTS_FOLDER_PATH, 'results')
-    datasets.np_double_save(results_array, RESULTS_FOLDER_PATH, 'results', as_csv=True)
-
-
-def load_data():
-    return datasets.load_all(os.path.join("datasets"))  # load dataset from csv
 
 
 def calc():
@@ -65,10 +59,11 @@ def calc():
     logger.setLevel(logging.INFO)
 
     # begin calc
-    loaded_dataset = load_data()
+    loaded_dataset = datasets.load_all(os.path.join("datasets"))  # load dataset from csv
     logger.info("{} {}".format("loaded_dataset shape", loaded_dataset.shape))
 
-    # loaded_dataset["Label"] = DATASET_NAME.upper()
+
+    #loaded_dataset["Label"] = DATASET_NAME.upper()
 
     logger.info(loaded_dataset.head())
     loaded_dataset.info()
@@ -88,20 +83,14 @@ def calc():
 
     dataset = None
 
-    logger.info('Scaling dataset')
     xTest = datasets.drop_variance(xTest)
     standardScaler = StandardScaler()
     xTestScaled = standardScaler.fit_transform(xTest)
 
-    logger.info("Performing PCA")
-    pca = PCA(random_state=42, n_components=0.95)
-    xTestPCA = pca.fit_transform(xTest)
-    logger.info("Dataset shape with PCA {}".format(xTestPCA.shape))
-
     results_array = []
 
     logger.info("Logistic Regression")
-    log_reg = LogisticRegression(verbose=1, n_jobs=-1, random_state=42, max_iter=1000)
+    log_reg = LogisticRegression(verbose=1, n_jobs=-1, max_iter=1000)
     results = scoring.cross_validate_scoring(log_reg, xTest, yTest, cv=3,
                                              scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
                                              return_train_score=True)
@@ -109,86 +98,49 @@ def calc():
     save_result2(results_array, results, "Logistic Regression")
     logger.info(results)
 
-    logger.info("Logistic Regression PCA")
-    log_reg = LogisticRegression(verbose=1, n_jobs=-1, random_state=42, max_iter=1000)
-    results = scoring.cross_validate_scoring(log_reg, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-
-    save_result2(results_array, results, "Logistic Regression PCA")
-    logger.info(results)
-
     logger.info("SVC Classifier")
-    linearSvc = LinearSVC(random_state=42, verbose=1)  # svc classifier
+    linearSvc = LinearSVC(verbose=1)  # svc classifier
     results = scoring.cross_validate_scoring(linearSvc, xTest, yTest, cv=3,
                                              scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
                                              return_train_score=True)
     save_result2(results_array, results, "SVC Normal")
     logger.info(results)
 
-    logger.info("SVC Classifier PCA")
-    linearSvc = LinearSVC(random_state=42, verbose=1)  # svc classifier
-    results = scoring.cross_validate_scoring(linearSvc, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-    save_result2(results_array, results, "SVC Normal PCA")
-    logger.info(results)
-
     logger.info("SVC Classifier Scaled")
-    linearSvc = LinearSVC(random_state=42, verbose=1)        #svc classifier
+    linearSvc = LinearSVC(verbose=1)        #svc classifier
     results = scoring.cross_validate_scoring(linearSvc, xTestScaled, yTest, cv=3,
                                              scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
                                              return_train_score=True)
     save_result2(results_array, results, "SVC Scaled")
     logger.info(results)
 
-    logger.info("Decision Tree")
-    dec_tree = DecisionTreeClassifier(random_state=42)
-    results = scoring.cross_validate_scoring(dec_tree, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-
-    save_result2(results_array, results, "Decision Tree")
-    logger.info(results)
-
-    logger.info("Decision Tree PCA")
-    dec_tree = DecisionTreeClassifier(random_state=42)
-    results = scoring.cross_validate_scoring(dec_tree, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-
-    save_result2(results_array, results, "Decision Tree PCA")
-    logger.info(results)
-
-    logger.info("Random Forest")
-    rnd_forest = RandomForestClassifier(random_state=42, verbose=1, n_jobs=-1)
-    results = scoring.cross_validate_scoring(rnd_forest, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-
-    save_result2(results_array, results, "Random Forest")
-    logger.info(results)
-
-    logger.info("Random Forest PCA")
-    rnd_forest = RandomForestClassifier(random_state=42, verbose=1, n_jobs=-1)
-    results = scoring.cross_validate_scoring(rnd_forest, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-
-    save_result2(results_array, results, "Random Forest PCA")
-    logger.info(results)
-
     console_handler.close()
     file_handler.close()
 
 
-def show(scor='f1'):
-    results = datasets.pk_load(RESULTS_FOLDER_PATH, 'results')
-    plot.plt_cross_validate_results(results, scor, 'Models ROC')
+def show():
+    for parameter_dir in os.listdir(RESULTS_FOLDER_PATH):
+        result_dir = os.path.join(RESULTS_FOLDER_PATH, parameter_dir)
+        if not os.path.isdir(result_dir):
+            continue
+        parameter_name = parameter_dir.replace("_", " ").capitalize()
+
+        for file in os.listdir(result_dir):
+            if file.endswith(".npy"):
+                if "roc_fpr_tpr_thres" in file:
+                    fpr_tpr_thres = datasets.np_load_data(result_dir, file)
+                    plot.initialize_roc_plt(parameter_name)
+                    for i in range(0, len(fpr_tpr_thres)):
+                        plot.plt_add_roc_curve(fpr_tpr_thres[i][1], fpr_tpr_thres[i][2], fpr_tpr_thres[i][0])
+                elif "roc_auc_scores" in file:
+                    auc_score = datasets.np_load_data(result_dir, file)
+                    plot.plot_auc_score(auc_score[:, 0], auc_score[:, 1], parameter_name)
+
+    plot.show()
 
 
 if __name__ == "__main__":
-    # calc()
-    show('roc_auc')
+    calc()
+    #show()
 
 
