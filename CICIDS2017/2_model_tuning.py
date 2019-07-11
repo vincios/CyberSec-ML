@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
+from sklearn.model_selection import train_test_split
 
 from utils import datasets, scoring, plot
 
@@ -34,7 +35,6 @@ def save_result2(results_array, results: dict, name: str):
     results['label'] = name
     results_array.append(results)
     datasets.pk_save(results_array, RESULTS_FOLDER_PATH, 'results')
-    datasets.np_double_save(results_array, RESULTS_FOLDER_PATH, 'results', as_csv=True)
 
 
 def calc():
@@ -98,16 +98,13 @@ def calc():
     save_result2(results_array, results, "Logistic Regression")
     logger.info(results)
 
-    try:
-        logger.info("SVC Classifier")
-        linearSvc = LinearSVC(verbose=1)  # svc classifier
-        results = scoring.cross_validate_scoring(linearSvc, xTest, yTest, cv=3,
-                                                 scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                                 return_train_score=True)
-        save_result2(results_array, results, "SVC Normal")
-        logger.info(results)
-    except Exception as e:
-        logger.warning(e)
+    logger.info("SVC Classifier")
+    linearSvc = LinearSVC(verbose=1)  # svc classifier
+    results = scoring.cross_validate_scoring(linearSvc, xTest, yTest, cv=3,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+                                             return_train_score=True)
+    save_result2(results_array, results, "SVC Normal")
+    logger.info(results)
 
     logger.info("SVC Classifier Scaled")
     linearSvc = LinearSVC(verbose=1)        #svc classifier
@@ -117,18 +114,33 @@ def calc():
     save_result2(results_array, results, "SVC Scaled")
     logger.info(results)
 
-
     console_handler.close()
     file_handler.close()
 
 
-def show(scor='f1'):
-    results = datasets.pk_load(RESULTS_FOLDER_PATH, 'results')
-    plot.plt_cross_validate_results(results, scor, 'Models ROC')
+def show():
+    for parameter_dir in os.listdir(RESULTS_FOLDER_PATH):
+        result_dir = os.path.join(RESULTS_FOLDER_PATH, parameter_dir)
+        if not os.path.isdir(result_dir):
+            continue
+        parameter_name = parameter_dir.replace("_", " ").capitalize()
+
+        for file in os.listdir(result_dir):
+            if file.endswith(".npy"):
+                if "roc_fpr_tpr_thres" in file:
+                    fpr_tpr_thres = datasets.np_load_data(result_dir, file)
+                    plot.initialize_roc_plt(parameter_name)
+                    for i in range(0, len(fpr_tpr_thres)):
+                        plot.plt_add_roc_curve(fpr_tpr_thres[i][1], fpr_tpr_thres[i][2], fpr_tpr_thres[i][0])
+                elif "roc_auc_scores" in file:
+                    auc_score = datasets.np_load_data(result_dir, file)
+                    plot.plot_auc_score(auc_score[:, 0], auc_score[:, 1], parameter_name)
+
+    plot.show()
 
 
 if __name__ == "__main__":
-    # calc()
-    show('roc_auc')
+    calc()
+    #show()
 
 

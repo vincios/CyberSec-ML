@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import pickle, json
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_selection import VarianceThreshold
 
@@ -66,7 +67,7 @@ def prepare_dataset(dataset: pd.DataFrame, drop_columns=None, shuffle=False, dro
     if shuffle:
         new_dataset = new_dataset.reindex(np.random.permutation(new_dataset.index))
 
-    return new_dataset
+    return pd.DataFrame(new_dataset)
 
 
 def separate_labels(dataset, column_name="Label", encode=False):
@@ -128,3 +129,24 @@ def np_double_save(ndarray, foldername, filename, as_npy=True, as_csv=False):
 
     if as_npy:
         np.save(file_path, ndarray)
+
+
+def pk_save(data, foldername, filename):
+    """
+    Save object as pikle file
+    :param data: object to save
+    :param foldername: target folder
+    :param filename: file name WITHOUT the extension
+    :param as_text: if object should saved ALSO as text file
+    :return:
+    """
+    file_path = os.path.join(foldername, filename)
+
+    with open(file_path + '.pkl', 'wb') as f:
+        pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+
+
+def pk_load(foldername, filename):
+    file_path = os.path.join(foldername, filename) + '.pkl'
+    with open(file_path, 'rb') as f:
+        return pickle.load(f)

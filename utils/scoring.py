@@ -19,7 +19,7 @@ def cross_validate_scoring(clf, xTest, yTest, cv=3, scoring=None, return_train_s
         scoring.remove('roc')
 
     should_return_estimator = return_estimator or perform_roc
-    results = {}
+
     results = cross_validate(clf, xTest, yTest,
                              cv=cv, scoring=scoring,
                              return_train_score=return_train_score, return_estimator=should_return_estimator,
