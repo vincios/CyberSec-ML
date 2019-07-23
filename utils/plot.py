@@ -73,7 +73,7 @@ def plt_cross_validate_results(results: dict, scoring='f1', title=None):
 
             for rect in rects:
                 height = rect.get_height()
-                ax.annotate('{}'.format("%.2f" % height),
+                ax.annotate('{}'.format("%.3f" % height),
                             xy=(rect.get_x() + rect.get_width() / 2, height),
                             xytext=(offset[xpos] * 3, 3),  # use 3 points offset
                             textcoords="offset points",  # in both directions
@@ -84,4 +84,61 @@ def plt_cross_validate_results(results: dict, scoring='f1', title=None):
 
         fig.tight_layout()
 
+    plt.show()
+
+
+def plt_validation_curve(train_scores, test_scores, param_range, param_name, plot_tile=None):
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+
+    plt.figure(figsize=(10, 5))
+    plt.title(plot_tile)
+    plt.xlabel(param_name)
+    plt.ylabel("Score")
+    # plt.ylim(0.7, 1.05)
+    lw = 2
+    plt.grid()
+    plt.plot(param_range, train_scores_mean, 'o-', label="Training score",
+             color="darkorange", lw=lw)
+    plt.fill_between(param_range, train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std, alpha=0.2,
+                     color="darkorange", lw=lw)
+    plt.plot(param_range, test_scores_mean, 'o-', label="Cross-validation score",
+             color="navy", lw=lw)
+    plt.fill_between(param_range, test_scores_mean - test_scores_std,
+                     test_scores_mean + test_scores_std, alpha=0.2,
+                     color="navy", lw=lw)
+    plt.legend(loc="best")
+    plt.show()
+
+
+def plt_learning_curve(train_sizes, train_scores, test_scores, title, ylim=None):
+    """
+    Generate a simple plot of the test and training learning curve.
+    """
+    plt.figure()
+    plt.title(title)
+    if ylim is not None:
+        plt.ylim(*ylim)
+    plt.xlabel("Training examples")
+    plt.ylabel("Score")
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    plt.grid()
+
+    plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std, alpha=0.1,
+                     color="darkorange")
+    plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                     test_scores_mean + test_scores_std, alpha=0.1, color="navy")
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="darkorange",
+             label="Training score")
+    plt.plot(train_sizes, test_scores_mean, 'o-', color="navy",
+             label="Cross-validation score")
+
+    plt.legend(loc="best")
     plt.show()

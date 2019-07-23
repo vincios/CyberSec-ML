@@ -2,15 +2,17 @@ import os
 import logging
 import pandas as pd
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.utils import resample
-from sklearn.model_selection import validation_curve, learning_curve
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import train_test_split, validation_curve
 
 from utils import datasets, scoring, plot
 
-DATASET_NAME = "tor"
-RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "2_model_tuning")
+DATASET_NAME = "ransomware"
+DATASET_NAME_2 = "benign"
+RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "2_model_tuning_new")
 
 
 def save_result(roc_curve, auc_score, classifier_name, rocs_array, auc_scores_array):
@@ -36,17 +38,26 @@ def save_result2(results_array, results: dict, name: str):
     datasets.pk_save(results_array, RESULTS_FOLDER_PATH, 'results')
 
 
-def load_data():
-    loaded_dataset = datasets.load_all(os.path.join("datasets"))  # load dataset from csv
-    tor = loaded_dataset[loaded_dataset.class1 == "TOR"]
-    nontor = loaded_dataset[loaded_dataset.class1 == "NONTOR"]
-    print(tor, nontor)
+def load_data(logger):
+    benign = datasets.load_all(os.path.join("datasets", DATASET_NAME_2))  # load dataset from csv
+    ransomware = datasets.load_all(os.path.join("datasets", DATASET_NAME))  # load dataset from csv
+    logger.info("{} {}".format("benign shape", benign.shape))
+    logger.info("{} {}".format("ransomware shape", ransomware.shape))
 
-    tor_supsample = resample(tor,
-                             replace=True,     # sample with replacement
-                             n_samples=nontor.shape[0],    # to match majority class
-                             random_state=42)
-    return pd.concat([tor_supsample, nontor], ignore_index=True)
+    benign = datasets.prepare_dataset(benign, shuffle=True)
+    ransomware = datasets.prepare_dataset(ransomware, shuffle=True)
+
+    n_elements = min(benign.shape[0], ransomware.shape[0], 150000)
+
+    benign = benign.head(n_elements)
+    ransomware = ransomware.head(n_elements)
+
+    logger.info("{} {}".format("benign shape after balancing", benign.shape))
+    logger.info("{} {}".format("ransomware shape after balancing", ransomware.shape))
+
+    ransomware["Label"] = DATASET_NAME.upper()
+
+    return pd.concat([benign, ransomware], ignore_index=True)  # union dataset
 
 
 def calc():
@@ -71,13 +82,10 @@ def calc():
     logger.setLevel(logging.INFO)
 
     # begin calc
-    loaded_dataset = load_data()
+    loaded_dataset = load_data(logger)
     logger.info("{} {}".format("loaded_dataset shape", loaded_dataset.shape))
-    logger.info(loaded_dataset['class1'].value_counts())
 
     # loaded_dataset["Label"] = DATASET_NAME.upper()
-
-    logger.info(loaded_dataset['class1'].value_counts())
 
     logger.info(loaded_dataset.head())
     loaded_dataset.info()
@@ -86,62 +94,60 @@ def calc():
 
     logger.info("{} {}".format("Dataset shape BEFORE preparation", loaded_dataset.shape))
     dataset = datasets.prepare_dataset(loaded_dataset,
-                                       # drop_columns=["Flow Bytes/s", "Flow Packets/s", "Fwd Header Length.1"],
-                                       shuffle=True, dropna_axis=[1])
+                                       drop_columns=["Flow Bytes/s", "Flow Packets/s", "Flow ID", "Source IP",
+                                                     "Destination IP", "Timestamp", "Fwd Header Length.1"],
+                                       shuffle=True, dropna_axis=[0, 1])
 
     loaded_dataset = None
 
     logger.info("{} {}".format("Dataset shape AFTER preparation", dataset.shape))
 
-    xTest, yTest = datasets.separate_labels(dataset, encode=True, column_name="class1")
+    xTest, yTest = datasets.separate_labels(dataset, encode=True)
 
     dataset = None
 
+    logger.info('Scaling dataset')
     xTest = datasets.drop_variance(xTest)
-    standardScaler = StandardScaler()
-    xTestScaled = standardScaler.fit_transform(xTest)
+    # standardScaler = StandardScaler()
+    # xTestScaled = standardScaler.fit_transform(xTest)
+
     results = []
-    clf = DecisionTreeClassifier(random_state=42)
+    clf = RandomForestClassifier(random_state=42, n_jobs=1)
+
+    param_name = "n_estimators"
+    param_range = [i ** 2 for i in range(4, 24, 4)]
+    logger.info(param_name)
+    logger.info(param_range)
+    training_score, test_score = validation_curve(clf, xTest, yTest, param_name=param_name,
+                                                  param_range=param_range,
+                                                  scoring="roc_auc", cv=4, verbose=1, n_jobs=-1)
+
+    results.append([param_name, param_range, training_score, test_score])
+    datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
 
     param_name = "max_depth"
-    param_range = [2**i for i in range(1, 11)]
+    param_range = [2 ** i for i in range(1, 8)]
+    logger.info(param_name)
+    logger.info(param_range)
     training_score, test_score = validation_curve(clf, xTest, yTest, param_name=param_name,
                                                   param_range=param_range,
-                                                  scoring="roc_auc", cv=6, verbose=1, n_jobs=-1)
+                                                  scoring="roc_auc", cv=4, verbose=1, n_jobs=-1)
 
     results.append([param_name, param_range, training_score, test_score])
     datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
-
 
     param_name = "min_samples_leaf"
-    param_range = [i for i in range(1, 15)]
-    print(param_range)
+    param_range = [2*i for i in range(1, 21)]
+    logger.info(param_name)
+    logger.info(param_range)
     training_score, test_score = validation_curve(clf, xTest, yTest, param_name=param_name,
                                                   param_range=param_range,
-                                                  scoring="roc_auc", cv=6, verbose=1, n_jobs=-1)
+                                                  scoring="roc_auc", cv=4, verbose=1, n_jobs=-1)
 
     results.append([param_name, param_range, training_score, test_score])
     datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
 
-
-    param_name = "max_features"
-    param_range = [1/i for i in range(1, 11)]
-    print(param_range)
-    training_score, test_score = validation_curve(clf, xTest, yTest, param_name=param_name,
-                                                  param_range=param_range,
-                                                  scoring="roc_auc", cv=6, verbose=1, n_jobs=-1)
-
-    results.append([param_name, param_range, training_score, test_score])
-    datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
-
-    clf = DecisionTreeClassifier(min_samples_leaf=10)
-    train_sizes, train_scores, test_scores = learning_curve(clf, xTest, yTest, cv=6, n_jobs=-1,
-                                                            train_sizes=np.linspace(0.1, 1, 10))
-
-    results = [train_sizes, train_scores, test_scores]
-    datasets.pk_save(results, RESULTS_FOLDER_PATH,
-                     "learning_curves")
-
+    # plot.plt_validation_curve(training_score, test_score, param_range)
     console_handler.close()
     file_handler.close()
 
@@ -150,10 +156,7 @@ def show():
     results = datasets.np_load_data(RESULTS_FOLDER_PATH, "results.npy")
     for result in results:
         plot.plt_validation_curve(result[2], result[3], result[1], result[0],
-                                  plot_tile="Validation curve for TOR/NonTor dataset with Decision Tree")
-
-    result = datasets.pk_load(RESULTS_FOLDER_PATH, "learning_curves")
-    plot.plt_learning_curve(result[0], result[1], result[2], "Learning curve for TOR/NonTor dataset with Decision Tree")
+                                  plot_tile="Validation curve for CICAndMal2017 dataset with Random Forest")
 
 
 if __name__ == "__main__":

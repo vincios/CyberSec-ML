@@ -82,7 +82,7 @@ def calc():
     dataset = datasets.prepare_dataset(loaded_dataset,
                                        drop_columns=["Flow Bytes/s", "Flow Packets/s", "Flow ID", "Source IP",
                                                      "Destination IP", "Timestamp", "Fwd Header Length.1"],
-                                       shuffle=True, dropna=True)
+                                       shuffle=True, dropna_axis=True)
 
     loaded_dataset = None
 
@@ -161,6 +161,6 @@ def show():
 
 
 if __name__ == "__main__":
-    calc()
-    # show()
+    # calc()
+    show()
 

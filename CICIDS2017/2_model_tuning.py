@@ -2,16 +2,15 @@ import os
 import logging
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import LinearSVC
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import validation_curve
+from sklearn.utils import resample
 
 from utils import datasets, scoring, plot
 
 DATASET_NAME = "ddos"
-RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "1_model_selection")
+RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "2_model_tuning")
 
 
 def save_result(roc_curve, auc_score, classifier_name, rocs_array, auc_scores_array):
@@ -37,6 +36,21 @@ def save_result2(results_array, results: dict, name: str):
     datasets.pk_save(results_array, RESULTS_FOLDER_PATH, 'results')
 
 
+def load_data():
+    # data = datasets.load_all(os.path.join("datasets"))  # load dataset from csv
+    # ddos = data[data.Label != "BENIGN"]
+    # benign = data[data.Label == "BENIGN"]
+    # ddos['Label'] = "DDoS"
+    #
+    # subsample = resample(benign,
+    #                      replace=True,
+    #                      n_samples=ddos.shape[0],
+    #                      random_state=42)
+    #
+    # return pd.concat([ddos, subsample], ignore_index=True)
+    return datasets.load_all(os.path.join("datasets"))  # load dataset from csv
+
+
 def calc():
     if not os.path.exists(RESULTS_FOLDER_PATH):
         os.makedirs(RESULTS_FOLDER_PATH)
@@ -59,11 +73,11 @@ def calc():
     logger.setLevel(logging.INFO)
 
     # begin calc
-    loaded_dataset = datasets.load_all(os.path.join("datasets"))  # load dataset from csv
+    loaded_dataset = load_data()
     logger.info("{} {}".format("loaded_dataset shape", loaded_dataset.shape))
+    logger.info(loaded_dataset['Label'].value_counts())
 
-
-    #loaded_dataset["Label"] = DATASET_NAME.upper()
+    # loaded_dataset["Label"] = DATASET_NAME.upper()
 
     logger.info(loaded_dataset.head())
     loaded_dataset.info()
@@ -73,7 +87,7 @@ def calc():
     logger.info("{} {}".format("Dataset shape BEFORE preparation", loaded_dataset.shape))
     dataset = datasets.prepare_dataset(loaded_dataset,
                                        drop_columns=["Flow Bytes/s", "Flow Packets/s", "Fwd Header Length.1"],
-                                       shuffle=True, dropna=True)
+                                       shuffle=True, dropna_axis=[0, 1])
 
     loaded_dataset = None
 
@@ -87,60 +101,32 @@ def calc():
     standardScaler = StandardScaler()
     xTestScaled = standardScaler.fit_transform(xTest)
 
-    results_array = []
+    results = []
 
     logger.info("Logistic Regression")
-    log_reg = LogisticRegression(verbose=1, n_jobs=-1, max_iter=1000)
-    results = scoring.cross_validate_scoring(log_reg, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
 
-    save_result2(results_array, results, "Logistic Regression")
-    logger.info(results)
+    param_name = "C"
+    param_range = np.logspace(-1, 1, 10)
+    log_reg = LogisticRegression(verbose=1, n_jobs=-1, max_iter=1000, solver="liblinear", penalty="l2",
+                                 random_state=42)
 
-    logger.info("SVC Classifier")
-    linearSvc = LinearSVC(verbose=1)  # svc classifier
-    results = scoring.cross_validate_scoring(linearSvc, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-    save_result2(results_array, results, "SVC Normal")
-    logger.info(results)
+    train_scores, val_scores = validation_curve(log_reg, xTest, yTest, param_name=param_name, param_range=param_range, cv=3,
+                                                scoring="roc_auc", verbose=1, n_jobs=-1)
 
-    logger.info("SVC Classifier Scaled")
-    linearSvc = LinearSVC(verbose=1)        #svc classifier
-    results = scoring.cross_validate_scoring(linearSvc, xTestScaled, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
-                                             return_train_score=True)
-    save_result2(results_array, results, "SVC Scaled")
-    logger.info(results)
+    results.append([param_name, param_range, train_scores, val_scores])
+    datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
 
     console_handler.close()
     file_handler.close()
 
 
-def show():
-    for parameter_dir in os.listdir(RESULTS_FOLDER_PATH):
-        result_dir = os.path.join(RESULTS_FOLDER_PATH, parameter_dir)
-        if not os.path.isdir(result_dir):
-            continue
-        parameter_name = parameter_dir.replace("_", " ").capitalize()
-
-        for file in os.listdir(result_dir):
-            if file.endswith(".npy"):
-                if "roc_fpr_tpr_thres" in file:
-                    fpr_tpr_thres = datasets.np_load_data(result_dir, file)
-                    plot.initialize_roc_plt(parameter_name)
-                    for i in range(0, len(fpr_tpr_thres)):
-                        plot.plt_add_roc_curve(fpr_tpr_thres[i][1], fpr_tpr_thres[i][2], fpr_tpr_thres[i][0])
-                elif "roc_auc_scores" in file:
-                    auc_score = datasets.np_load_data(result_dir, file)
-                    plot.plot_auc_score(auc_score[:, 0], auc_score[:, 1], parameter_name)
-
-    plot.show()
+def show(scor='roc_auc'):
+    results = datasets.np_load_data(RESULTS_FOLDER_PATH, "results.npy")
+    for result in results:
+        plot.plt_validation_curve(result[2], result[3], result[1], result[0],
+                                  plot_tile="Validation curve for CICIDS2017 dataset with Linear Regression")
 
 
 if __name__ == "__main__":
-    calc()
-    #show()
-
-
+    # calc()
+    show()

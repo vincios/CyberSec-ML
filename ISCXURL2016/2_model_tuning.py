@@ -1,17 +1,15 @@
 import os
 import logging
-import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import LinearSVC
-from sklearn.model_selection import train_test_split, validation_curve
 
 from utils import datasets, scoring, plot
 
-DATASET_NAME = "vpn"
-RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "2_model_tuning")
+DATASET_NAME = "spam"
+RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "1_model_selection")
 
 
 def save_result(roc_curve, auc_score, classifier_name, rocs_array, auc_scores_array):
@@ -65,77 +63,64 @@ def calc():
     # begin calc
     loaded_dataset = load_data()
     logger.info("{} {}".format("loaded_dataset shape", loaded_dataset.shape))
-    logger.info(loaded_dataset['class1'].value_counts())
 
     # loaded_dataset["Label"] = DATASET_NAME.upper()
 
     logger.info(loaded_dataset.head())
     loaded_dataset.info()
+    logger.info(loaded_dataset['URL_Type_obf_Type'].value_counts())
 
     dataset = None
 
     logger.info("{} {}".format("Dataset shape BEFORE preparation", loaded_dataset.shape))
     dataset = datasets.prepare_dataset(loaded_dataset,
                                        # drop_columns=["Flow Bytes/s", "Flow Packets/s", "Fwd Header Length.1"],
-                                       shuffle=True, dropna_axis=[1])
+                                       shuffle=True, dropna_axis=[0, 1])
 
     loaded_dataset = None
 
     logger.info("{} {}".format("Dataset shape AFTER preparation", dataset.shape))
 
-    xTest, yTest = datasets.separate_labels(dataset, encode=True, column_name="class1")
+    xTest, yTest = datasets.separate_labels(dataset, encode=True, column_name="URL_Type_obf_Type")
 
     dataset = None
 
     xTest = datasets.drop_variance(xTest)
     standardScaler = StandardScaler()
     xTestScaled = standardScaler.fit_transform(xTest)
-    results = []
-    clf = RandomForestClassifier(random_state=42, n_jobs=-1)
 
-    param_name = "max_depth"
-    param_range = [2 ** i for i in range(1, 11)]
-    training_score, test_score = validation_curve(clf, xTest, yTest, param_name=param_name,
-                                                  param_range=param_range,
-                                                  scoring="roc_auc", cv=3, verbose=1, n_jobs=-1)
+    results_array = []
 
-    results.append([param_name, param_range, training_score, test_score])
-    datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
+    logger.info("Logistic Regression")
+    log_reg = LogisticRegression(verbose=1, n_jobs=-1, max_iter=1000)
 
-    param_name = "min_samples_leaf"
-    param_range = [i for i in range(1, 11)]
-    print(param_range)
-    training_score, test_score = validation_curve(clf, xTest, yTest, param_name=param_name,
-                                                  param_range=param_range,
-                                                  scoring="roc_auc", cv=3, verbose=1, n_jobs=-1)
-
-    results.append([param_name, param_range, training_score, test_score])
-    datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
-
-    param_name = "n_estimators"
-    param_range = [i**2 for i in range(4, 25, 4)]
-    print(param_range)
-    training_score, test_score = validation_curve(clf, xTest, yTest, param_name=param_name,
-                                                  param_range=param_range,
-                                                  scoring="roc_auc", cv=3, verbose=1, n_jobs=-1)
-
-    results.append([param_name, param_range, training_score, test_score])
-    datasets.np_double_save(results, RESULTS_FOLDER_PATH, "results", as_csv=True, as_npy=True)
-
-    # plot.plt_validation_curve(training_score, test_score, param_range)
     console_handler.close()
     file_handler.close()
 
 
 def show():
-    results = datasets.np_load_data(RESULTS_FOLDER_PATH, "results.npy")
-    for result in results:
-        plot.plt_validation_curve(result[2], result[3], result[1], result[0],
-                                  plot_tile="Validation curve for VPN/NonVPN dataset with Random Forest")
+    for parameter_dir in os.listdir(RESULTS_FOLDER_PATH):
+        result_dir = os.path.join(RESULTS_FOLDER_PATH, parameter_dir)
+        if not os.path.isdir(result_dir):
+            continue
+        parameter_name = parameter_dir.replace("_", " ").capitalize()
+
+        for file in os.listdir(result_dir):
+            if file.endswith(".npy"):
+                if "roc_fpr_tpr_thres" in file:
+                    fpr_tpr_thres = datasets.np_load_data(result_dir, file)
+                    plot.initialize_roc_plt(parameter_name)
+                    for i in range(0, len(fpr_tpr_thres)):
+                        plot.plt_add_roc_curve(fpr_tpr_thres[i][1], fpr_tpr_thres[i][2], fpr_tpr_thres[i][0])
+                elif "roc_auc_scores" in file:
+                    auc_score = datasets.np_load_data(result_dir, file)
+                    plot.plot_auc_score(auc_score[:, 0], auc_score[:, 1], parameter_name)
+
+    plot.show()
 
 
 if __name__ == "__main__":
-    # calc()
-    show()
+    calc()
+    #show()
 
 

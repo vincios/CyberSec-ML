@@ -9,11 +9,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.decomposition import PCA
-from sklearn.utils import resample
 
 from utils import datasets, scoring, plot
 
-DATASET_NAME = "tor"
+DATASET_NAME = "spam"
 RESULTS_FOLDER_PATH = os.path.join("results", DATASET_NAME, "1_model_selection")
 
 
@@ -42,16 +41,7 @@ def save_result2(results_array, results: dict, name: str):
 
 
 def load_data():
-    loaded_dataset = datasets.load_all(os.path.join("datasets"))  # load dataset from csv
-    tor = loaded_dataset[loaded_dataset.class1 == "TOR"]
-    nontor = loaded_dataset[loaded_dataset.class1 == "NONTOR"]
-    print(tor, nontor)
-
-    tor_supsample = resample(tor,
-                             replace=True,     # sample with replacement
-                             n_samples=nontor.shape[0],    # to match majority class
-                             random_state=42)
-    return pd.concat([tor_supsample, nontor], ignore_index=True)
+    return datasets.load_all(os.path.join("datasets"))  # load dataset from csv
 
 
 def calc():
@@ -78,14 +68,12 @@ def calc():
     # begin calc
     loaded_dataset = load_data()
     logger.info("{} {}".format("loaded_dataset shape", loaded_dataset.shape))
-    logger.info(loaded_dataset['class1'].value_counts())
 
     # loaded_dataset["Label"] = DATASET_NAME.upper()
 
-    logger.info(loaded_dataset['class1'].value_counts())
-
     logger.info(loaded_dataset.head())
     loaded_dataset.info()
+    logger.info(loaded_dataset['URL_Type_obf_Type'].value_counts())
 
     dataset = None
 
@@ -98,7 +86,7 @@ def calc():
 
     logger.info("{} {}".format("Dataset shape AFTER preparation", dataset.shape))
 
-    xTest, yTest = datasets.separate_labels(dataset, encode=True, column_name="class1")
+    xTest, yTest = datasets.separate_labels(dataset, encode=True, column_name="URL_Type_obf_Type")
 
     dataset = None
 
@@ -134,7 +122,7 @@ def calc():
     save_result2(results_array, results, "Logistic Regression Scaled")
     logger.info(results)
     logger.info(results['confusion_matrix'])
-
+    
     logger.info("Logistic Regression PCA")
     log_reg = LogisticRegression(verbose=0, n_jobs=-1, random_state=42, max_iter=1000)
     results = scoring.cross_validate_scoring(log_reg, xTestPCA, yTest, cv=10,
@@ -215,8 +203,7 @@ def calc():
     logger.info("Decision Tree Scaled")
     dec_tree = DecisionTreeClassifier(random_state=42)
     results = scoring.cross_validate_scoring(dec_tree, xTestScaled, yTest, cv=10,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall',
-                                                      'confusion_matrix'],
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
 
     save_result2(results_array, results, "Decision Tree Scaled")
@@ -269,7 +256,7 @@ def calc():
 
 def show(scor='f1'):
     results = datasets.pk_load(RESULTS_FOLDER_PATH, 'results')
-    plot.plt_cross_validate_results(results, scoring=scor, title='Models ROC')
+    plot.plt_cross_validate_results(results, scor, 'Models ROC')
 
 
 if __name__ == "__main__":

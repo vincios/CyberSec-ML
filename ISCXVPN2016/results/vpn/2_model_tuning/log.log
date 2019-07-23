@@ -1,0 +1,14 @@
+loaded_dataset shape (59706, 26)
+VPN        30093
+Non-VPN    29613
+Name: class1, dtype: int64
+    class1   duration  flowBytesPerSecond  ...      std_idle  total_biat  total_fiat
+0  Non-VPN  117202678         1411.640099  ...  7.605741e+06         4.0        17.0
+1  Non-VPN  119579137         1731.104649  ...  7.108954e+06         4.0        16.0
+2  Non-VPN   90462788          701.404427  ...  9.259661e+06         5.0        20.0
+3  Non-VPN   65341087         1238.133672  ...  9.321698e+06         5.0        18.0
+4  Non-VPN  119999180            6.083375  ...  1.499153e+02  29999277.0  29999272.0
+
+[5 rows x 26 columns]
+Dataset shape BEFORE preparation (59706, 26)
+Dataset shape AFTER preparation (59706, 22)

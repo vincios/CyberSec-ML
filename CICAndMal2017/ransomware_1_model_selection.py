@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
@@ -98,7 +99,7 @@ def calc():
     dataset = datasets.prepare_dataset(loaded_dataset,
                                        drop_columns=["Flow Bytes/s", "Flow Packets/s", "Flow ID", "Source IP",
                                                      "Destination IP", "Timestamp", "Fwd Header Length.1"],
-                                       shuffle=True, dropna=True)
+                                       shuffle=True, dropna_axis=[0, 1])
 
     loaded_dataset = None
 
@@ -121,82 +122,152 @@ def calc():
     results_array = []
 
     logger.info("Logistic Regression")
-    log_reg = LogisticRegression(verbose=1, n_jobs=-1, random_state=42, max_iter=1000)
-    results = scoring.cross_validate_scoring(log_reg, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    log_reg = LogisticRegression(verbose=0, n_jobs=-1, random_state=42, max_iter=1000)
+    results = scoring.cross_validate_scoring(log_reg, xTest, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
 
     save_result2(results_array, results, "Logistic Regression")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
+
+    logger.info("Logistic Regression Scaled")
+    log_reg = LogisticRegression(verbose=0, n_jobs=-1, random_state=42, max_iter=1000)
+    results = scoring.cross_validate_scoring(log_reg, xTestScaled, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall',
+                                                      'confusion_matrix'],
+                                             return_train_score=True)
+
+    save_result2(results_array, results, "Logistic Regression Scaled")
+    logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("Logistic Regression PCA")
-    log_reg = LogisticRegression(verbose=1, n_jobs=-1, random_state=42, max_iter=1000)
-    results = scoring.cross_validate_scoring(log_reg, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    log_reg = LogisticRegression(verbose=0, n_jobs=-1, random_state=42, max_iter=1000)
+    results = scoring.cross_validate_scoring(log_reg, xTestPCA, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
 
     save_result2(results_array, results, "Logistic Regression PCA")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
+
+    logger.info("Naive Bayes")
+    gaussian_nb = GaussianNB()
+    results = scoring.cross_validate_scoring(gaussian_nb, xTest, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
+                                             return_train_score=True)
+
+    save_result2(results_array, results, "Naive Bayes")
+    logger.info(results)
+    logger.info(results['confusion_matrix'])
+
+    logger.info("Naive Bayes Scales")
+    gaussian_nb = GaussianNB()
+    results = scoring.cross_validate_scoring(gaussian_nb, xTestScaled, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
+                                             return_train_score=True)
+
+    save_result2(results_array, results, "Naive Bayes Scaled")
+    logger.info(results)
+    logger.info(results['confusion_matrix'])
+
+    logger.info("Naive Bayes DR")
+    gaussian_nb = GaussianNB()
+    results = scoring.cross_validate_scoring(gaussian_nb, xTestPCA, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
+                                             return_train_score=True)
+
+    save_result2(results_array, results, "Naive Bayes PCA")
+    logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("SVC Classifier")
-    linearSvc = LinearSVC(random_state=42, verbose=1)  # svc classifier
-    results = scoring.cross_validate_scoring(linearSvc, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    linearSvc = LinearSVC(random_state=42, verbose=0, dual=False)  # svc classifier
+    results = scoring.cross_validate_scoring(linearSvc, xTest, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
     save_result2(results_array, results, "SVC Normal")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("SVC Classifier PCA")
-    linearSvc = LinearSVC(random_state=42, verbose=1)  # svc classifier
-    results = scoring.cross_validate_scoring(linearSvc, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    linearSvc = LinearSVC(random_state=42, verbose=0, dual=False)  # svc classifier
+    results = scoring.cross_validate_scoring(linearSvc, xTestPCA, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
     save_result2(results_array, results, "SVC Normal PCA")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("SVC Classifier Scaled")
-    linearSvc = LinearSVC(random_state=42, verbose=1)        #svc classifier
-    results = scoring.cross_validate_scoring(linearSvc, xTestScaled, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    linearSvc = LinearSVC(random_state=42, verbose=0, dual=False)        #svc classifier
+    results = scoring.cross_validate_scoring(linearSvc, xTestScaled, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
     save_result2(results_array, results, "SVC Scaled")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("Decision Tree")
     dec_tree = DecisionTreeClassifier(random_state=42)
-    results = scoring.cross_validate_scoring(dec_tree, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    results = scoring.cross_validate_scoring(dec_tree, xTest, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
 
     save_result2(results_array, results, "Decision Tree")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
+
+    logger.info("Decision Tree Scaled")
+    dec_tree = DecisionTreeClassifier(random_state=42)
+    results = scoring.cross_validate_scoring(dec_tree, xTestScaled, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
+                                             return_train_score=True)
+
+    save_result2(results_array, results, "Decision Tree Scaled")
+    logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("Decision Tree PCA")
     dec_tree = DecisionTreeClassifier(random_state=42)
-    results = scoring.cross_validate_scoring(dec_tree, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    results = scoring.cross_validate_scoring(dec_tree, xTestPCA, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
 
     save_result2(results_array, results, "Decision Tree PCA")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("Random Forest")
-    rnd_forest = RandomForestClassifier(random_state=42, verbose=1, n_jobs=-1)
-    results = scoring.cross_validate_scoring(rnd_forest, xTest, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    rnd_forest = RandomForestClassifier(n_estimators=100, random_state=42, verbose=0, n_jobs=-1)
+    results = scoring.cross_validate_scoring(rnd_forest, xTest, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
 
     save_result2(results_array, results, "Random Forest")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
+    
+    logger.info("Random Forest Scaled")
+    rnd_forest = RandomForestClassifier(n_estimators=100, random_state=42, verbose=0, n_jobs=-1)
+    results = scoring.cross_validate_scoring(rnd_forest, xTestScaled, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
+                                             return_train_score=True)
+
+    save_result2(results_array, results, "Random Forest Scaled")
+    logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     logger.info("Random Forest PCA")
-    rnd_forest = RandomForestClassifier(random_state=42, verbose=1, n_jobs=-1)
-    results = scoring.cross_validate_scoring(rnd_forest, xTestPCA, yTest, cv=3,
-                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall'],
+    rnd_forest = RandomForestClassifier(n_estimators=100, random_state=42, verbose=0, n_jobs=-1)
+    results = scoring.cross_validate_scoring(rnd_forest, xTestPCA, yTest, cv=10,
+                                             scoring=['roc_auc', 'f1', 'roc', 'precision', 'recall', 'confusion_matrix'],
                                              return_train_score=True)
 
     save_result2(results_array, results, "Random Forest PCA")
     logger.info(results)
+    logger.info(results['confusion_matrix'])
 
     console_handler.close()
     file_handler.close()
@@ -208,7 +279,7 @@ def show(scor='f1'):
 
 
 if __name__ == "__main__":
-    # calc()
-    show('f1')
+    calc()
+    # show('roc_auc')
 
 

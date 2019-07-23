@@ -44,14 +44,14 @@ def load_all(directory):
     return pd.concat(final_dataset, ignore_index=True)
 
 
-def prepare_dataset(dataset: pd.DataFrame, drop_columns=None, shuffle=False, dropna=False):
+def prepare_dataset(dataset: pd.DataFrame, drop_columns=None, shuffle=False, dropna_axis=None):
     """
     Pre-process a dataset following specified parameters
 
     :param dataset: pandas DataFrame to prepare
     :param drop_columns: list of columns names to delete from database (default: None)
     :param shuffle: if should shuffle rows in the DataFrame (default: False)
-    :param dropna: if should remove rows containing any N/A values (default: False)
+    :param dropna_axis: array with axis containing any N/A values to remove (default: None)
     :return: the prepared dataset
     """
     new_dataset = dataset.copy()
@@ -60,9 +60,9 @@ def prepare_dataset(dataset: pd.DataFrame, drop_columns=None, shuffle=False, dro
         for column in drop_columns:
             new_dataset = new_dataset.drop(column, axis=1)
 
-    if dropna:
-        new_dataset = new_dataset.dropna(axis=0)
-        new_dataset = new_dataset.dropna(axis=1)
+    if dropna_axis:
+        for axis in dropna_axis:
+            new_dataset = new_dataset.dropna(axis=axis)
 
     if shuffle:
         new_dataset = new_dataset.reindex(np.random.permutation(new_dataset.index))
